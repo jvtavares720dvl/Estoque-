@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>App de Estoque</title>
+    <style>
+        /* =========================================
+           VARIÁVEIS DE TEMA (Design System)
+           ========================================= */
+        :root {
+            --primary: #4F46E5; /* Azul Escuro Moderno */
+            --primary-light: #E0E7FF;
+            --success: #10B981; /* Verde Entrada */
+            --danger: #EF4444;  /* Vermelho Saída/Alerta */
+            --warning: #F59E0B; /* Laranja Atenção */
+            --bg-color: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-dark: #111827;
+            --text-gray: #6B7280;
+            --border: #E5E7EB;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            user-select: none; /* Evita selecionar texto ao clicar rápido */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            /* Espaço no final para o menu inferior não cobrir o conteúdo */
+            padding-bottom: 70px; 
+            overscroll-behavior-y: none;
+        }
+
+        /* =========================================
+           ESTRUTURA DAS TELAS (SPA)
+           ========================================= */
+        .page {
+            display: none; /* Esconde todas as telas por padrão */
+            padding: 16px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .page.active {
+            display: block; /* Mostra apenas a tela ativa */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* =========================================
+           CABEÇALHO PADRÃO
+           ========================================= */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* =========================================
+           DASHBOARD (CARDS DE RESUMO)
+           ========================================= */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-title {
+            font-size: 12px;
+            color: var(--text-gray);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 22px;
+            font-weight: 800;
+        }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+
+        /* =========================================
+           BOTÕES DE AÇÃO RÁPIDA
+           ========================================= */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .action-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 12px 8px;
+            border-radius: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            transition: background 0.2s;
+        }
+        .action-btn:active { background: var(--primary-light); }
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            fill: var(--primary);
+        }
+        .action-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* =========================================
+           LISTA DE PRODUTOS
+           ========================================= */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .product-card {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--success);
+        }
+        .product-card.low-stock {
+            border-left-color: var(--danger);
+        }
+        .product-info h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        .product-info p {
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+        .product-qty {
+            text-align: right;
+        }
+        .product-qty span {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .product-qty small {
+            font-size: 11px;
+            color: var(--text-gray);
+        }
+        
+        /* Campo de Busca */
+        .search-bar {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 16px;
+            outline: none;
+            background: var(--surface);
+        }
+        .search-bar:focus {
+            border-color: var(--primary);
+        }
+
+        /* =========================================
+           MENU INFERIOR (BOTTOM NAV)
+           ========================================= */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--surface);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            border-top: 1px solid var(--border);
+            z-index: 1000;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-gray);
+            cursor: pointer;
+            width: 33%;
+        }
+        .nav-item.active {
+            color: var(--primary);
+        }
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        .nav-text {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* Botão Flutuante (FAB) */
+        .fab-button {
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            background: var(--primary);
+            color: white;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+            cursor: pointer;
+            z-index: 999;
+        }
+        .fab-button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================
+         TELA 1: DASHBOARD (HOME)
+         ========================================== -->
+    <div id="view-home" class="page active">
+        <div class="header">
+            <div>
+                <p style="color: var(--text-gray); font-size: 14px;">Olá, Operador</p>
+                <h1>Visão Geral</h1>
+            </div>
+            <div class="user-avatar">OP</div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-title">Total em Estoque</div>
+                <div class="stat-value">1.432</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Valor Aprox.</div>
+                <div class="stat-value text-success">R$ 45k</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Entradas Hoje</div>
+                <div class="stat-value">12</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Estoque Crítico</div>
+                <div class="stat-value text-danger">3</div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Ações Rápidas</h2>
+        <div class="action-grid">
+            <div class="action-btn" onclick="sendToKodular('acao_entrada')">
+                <svg class="action-icon" style="fill: var(--success);" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                <div class="action-text">Entrada</div>
+            </div>
+            <div class="action-btn" onclick="sendToKodular('acao_saida')">
+                <svg class="action-icon" style="fill: var(--danger);" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+                <div class="action-text">Saída</div>
+            </div>
+            <div class="action-btn" onclick="sendToKodular('acao_bipar')">
+                <svg class="action-icon" viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 15h6v6H3v-6zm2 2v2h2v-2H5zm8-2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg>
+                <div class="action-text">Bipar (Ler)</div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Alertas de Reposição</h2>
+        <div class="product-list">
+            <div class="product-card low-stock">
+                <div class="product-info">
+                    <h3>Cabo HDMI 2.0 (2m)</h3>
+                    <p>SKU: CAB-HD-02</p>
+                </div>
+                <div class="product-qty">
+                    <span class="text-danger">2</span>
+                    <small>Mín: 10</small>
+                </div>
+            </div>
+            <div class="product-card low-stock">
+                <div class="product-info">
+                    <h3>Mouse Sem Fio Pro</h3>
+                    <p>SKU: MOU-WL-99</p>
+                </div>
+                <div class="product-qty">
+                    <span class="text-danger">0</span>
+                    <small>Mín: 5</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         TELA 2: LISTA DE PRODUTOS
+         ========================================== -->
+    <div id="view-produtos" class="page">
+        <div class="header">
+            <h1>Catálogo</h1>
+        </div>
+        
+        <input type="text" class="search-bar" placeholder="Buscar produto ou SKU..." onkeyup="searchProduct(this.value)">
+
+        <div class="product-list" id="lista-completa">
+            <div class="product-card">
+                <div class="product-info">
+                    <h3>Teclado Mecânico RGB</h3>
+                    <p>SKU: TEC-MC-01 • Prateleira A2</p>
+                </div>
+                <div class="product-qty">
+                    <span>45</span>
+                    <small>Unidades</small>
+                </div>
+            </div>
+            <div class="product-card">
+                <div class="product-info">
+                    <h3>Monitor 24" IPS</h3>
+                    <p>SKU: MON-24-IP • Prateleira B1</p>
+                </div>
+                <div class="product-qty">
+                    <span>12</span>
+                    <small>Unidades</small>
+                </div>
+            </div>
+            <div class="product-card low-stock">
+                <div class="product-info">
+                    <h3>Cabo HDMI 2.0 (2m)</h3>
+                    <p>SKU: CAB-HD-02 • Corredor 3</p>
+                </div>
+                <div class="product-qty">
+                    <span class="text-danger">2</span>
+                    <small>Unidades</small>
+                </div>
+            </div>
+            <div class="product-card">
+                <div class="product-info">
+                    <h3>Headset Gamer 7.1</h3>
+                    <p>SKU: AUD-HS-71 • Prateleira A5</p>
+                </div>
+                <div class="product-qty">
+                    <span>28</span>
+                    <small>Unidades</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botão Flutuante de Adicionar -->
+        <div class="fab-button" onclick="sendToKodular('acao_novo_produto')">
+            <svg style="width: 28px; height: 28px; fill: white;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         TELA 3: CONFIGURAÇÕES / PERFIL
+         ========================================== -->
+    <div id="view-config" class="page">
+        <div class="header">
+            <h1>Ajustes</h1>
+        </div>
+        <p style="color: var(--text-gray); margin-bottom: 20px;">Integrações e sistema</p>
+        
+        <div class="product-list">
+            <div class="product-card" onclick="sendToKodular('abrir_sincronizacao')" style="cursor:pointer;">
+                <div class="product-info">
+                    <h3>Sincronizar Banco de Dados</h3>
+                    <p>Baixar atualizações do servidor</p>
+                </div>
+                <svg style="width:24px; height:24px; fill:var(--primary);" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            </div>
+            <div class="product-card" onclick="sendToKodular('fazer_logout')" style="cursor:pointer; border-left-color: var(--danger);">
+                <div class="product-info">
+                    <h3 style="color: var(--danger);">Sair da Conta</h3>
+                    <p>Desconectar operador atual</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MENU INFERIOR (NAVEGAÇÃO)
+         ========================================== -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('view-home', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span class="nav-text">Início</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('view-produtos', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+            <span class="nav-text">Produtos</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('view-config', this)">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 C13.73,21.83,13.93,22,14.17,22h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+            <span class="nav-text">Ajustes</span>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         JAVASCRIPT DE CONTROLE
+         ========================================== -->
+    <script>
+        // Função para alternar entre as telas (SPA Logic)
+        function switchTab(viewId, element) {
+            // Esconde todas as telas
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            // Tira o foco (cor azul) de todos os ícones do menu
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Mostra a tela selecionada
+            document.getElementById(viewId).classList.add('active');
+            // Coloca o foco no ícone clicado
+            element.classList.add('active');
+            
+            // Rola a tela pro topo suavemente
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Função de busca simples para a tela de Produtos
+        function searchProduct(text) {
+            let filter = text.toLowerCase();
+            let cards = document.getElementById("lista-completa").getElementsByClassName("product-card");
+            
+            for (let i = 0; i < cards.length; i++) {
+                let h3 = cards[i].querySelector("h3").innerText.toLowerCase();
+                let p = cards[i].querySelector("p").innerText.toLowerCase();
+                
+                if (h3.indexOf(filter) > -1 || p.indexOf(filter) > -1) {
+                    cards[i].style.display = "flex";
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+        }
+
+        // ==========================================
+        // COMUNICAÇÃO COM O KODULAR
+        // ==========================================
+        function sendToKodular(acao) {
+            // Verifica se está rodando dentro do WebViewer do Kodular
+            if (window.AppInventor) {
+                // Envia uma string de texto para o bloco "WebViewer.WebViewStringChange"
+                window.AppInventor.setWebViewString(acao);
+            } else {
+                // Se estiver testando no navegador do PC, mostra um alerta
+                alert("Ação enviada para o Kodular: " + acao);
+            }
+        }
+    </script>
+</body>
+</html>
